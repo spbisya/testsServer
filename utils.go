@@ -14,7 +14,7 @@ import (
 
 
 func initDb() *gorp.DbMap {
-	db, err := sql.Open("mysql", "root:pass@/tests")
+	db, err := sql.Open("mysql", "root:98Mdgagj@/tests")
 	checkErr(err, "sql.Open failed")
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
 	checkErr(err, "Create tables failed")

@@ -36,7 +36,7 @@ func main() {
 				"title": "Main website",
 		})
 	})
-	r.Run()
+	r.Run(":80")
 }
 
 
@@ -50,7 +50,7 @@ func GetTests(c *gin.Context) {
   _, err=  dbmap.Select(&questions, "SELECT * FROM questions WHERE uid=?", tests[i].Uid)
   for k:=0;k<len(questions);k=k+1{
     var answers []AnswerModel
-  _, err=  dbmap.Select(&answers, "SELECT * FROM answers WHERE uid=?", tests[i].Uid)
+  _, err=  dbmap.Select(&answers, "SELECT * FROM answers WHERE uid=? AND id=?", tests[i].Uid, questions[k].Uid)
     questions[k].Answers = answers
   }
   tests[i].Questions=questions
@@ -77,7 +77,7 @@ func GetTestById(c *gin.Context) {
   _, err=  dbmap.Select(&questions, "SELECT * FROM questions WHERE uid=?", id)
   for k:=0;k<len(questions);k=k+1{
     var answers []AnswerModel
-  _, err=  dbmap.Select(&answers, "SELECT * FROM answers WHERE uid=?", id)
+_, err=  dbmap.Select(&answers, "SELECT * FROM answers WHERE uid=? AND id=?", id, questions[k].Uid)
     questions[k].Answers = answers
   }
   test.Questions=questions
@@ -162,16 +162,20 @@ func AddTest(c *gin.Context) {
 	c.Bind(&test)
 	log.Println(test)
 	if test.Name != "" && test.Description != "" && test.Image != "" && len(test.Questions)>0 && len(test.ResultInfos)>0{
-		if insert, _ := dbmap.Exec(`INSERT INTO tests (name, description, image) VALUES (?, ?, ?)`,
+		if insert, err := dbmap.Exec(`INSERT INTO tests (name, description, image) VALUES (?, ?, ?)`,
     test.Name, test.Description, test.Image); insert != nil {
+checkErr(err, "insert Test failed")
       test_id, err := insert.LastInsertId()
 			if err == nil {
         for i:=0; i<len(test.Questions);i=i+1{
           log.Println(test.Questions[i])
-           dbmap.Exec(`INSERT INTO questions (uid, question) VALUES (?, ?)`, test_id, test.Questions[i].Question);
+           insert1, err := dbmap.Exec(`INSERT INTO questions (uid, question) VALUES (?, ?)`, test_id, test.Questions[i].Question);
+checkErr(err, "insert question failed")           
+questionId, err := insert1.LastInsertId()
+checkErr(err, "getId failed")
            for k:=0; k<len(test.Questions[i].Answers); k=k+1{
-             dbmap.Exec(`INSERT INTO answers (uid, answer, points) VALUES (?, ?, ?)`,
-              test_id, test.Questions[i].Answers[k].Answer, test.Questions[i].Answers[k].Points);
+             dbmap.Exec(`INSERT INTO answers (uid, id, answer, points) VALUES (?, ?, ?, ?)`,
+              test_id, questionId, test.Questions[i].Answers[k].Answer, test.Questions[i].Answers[k].Points);
            }
         }
         for i:=0; i<len(test.ResultInfos);i=i+1{
@@ -188,11 +192,12 @@ func AddTest(c *gin.Context) {
 				}
 				c.JSON(201, content)
 			} else {
-				checkErr(err, "Insert failed")
+c.JSON(400, gin.H{"error":"insert failed"})
 			}
-		}
 	} else {
-		c.JSON(400, gin.H{"error": "Fields are empty"})
+		c.JSON(400, gin.H{"error": ("Fields are empty - "+ test.Name+" "+test.Description+" "+test.Image)})
 	}
 }
 	//  curl -i -X POST -H "Content-Type: application/json" -d "{ \"name\": \"Who R u from Winx?\", \"Description\": \"Who are you, bro? Ur life is shit\", \"image\": \"http://lorempixel.com/400/200/\" }" http://localhost:8080/api/tests}
+
+v

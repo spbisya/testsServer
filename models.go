@@ -43,6 +43,7 @@ type Test struct {
 }
 
 type QuestionModel struct{
+	Uid int64  `db:"kid" json:"-"`
   Question string `db:"question" json:"question"`
   Answers []AnswerModel `json:"answers"`
 }
@@ -67,3 +68,4 @@ type Filter struct{
   TestsString string `db:"tests" json:"-"`
   Tests []int64 `db:"-" json:"ids"`
 }
+
